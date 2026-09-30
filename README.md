@@ -1,4 +1,5 @@
 # DO
+<!-- deployed via Vercel + Supabase -->
 
 What do you want to do? Drag toward a part of your life, land on the
 urgency × importance map, and knock things out.
