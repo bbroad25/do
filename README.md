@@ -61,6 +61,35 @@ link it sends you.
 - `supabase/schema.sql` — the whole database, ready to paste into the SQL
   editor.
 
+## Sending tasks into DO (webhooks, Shortcuts, IFTTT)
+
+Create a key in **Menu → Integrations → Send tasks to DO**, then:
+
+```bash
+curl -X POST https://<your-app>/api/inbound \
+  -H "Authorization: Bearer do_xxx" -H "Content-Type: application/json" \
+  -d '{"title":"Call the tile guy","source":"shortcuts","due":"2026-10-02"}'
+```
+
+- IFTTT can't set headers: use `POST /api/inbound?token=do_xxx` instead.
+- Fields: `title` (required), `notes`, `due`, `completed`, `source`, `external_id`, `list`, `url`.
+  Send `{ "tasks": [...] }` for up to 100 at once.
+- Send a stable `external_id` and re-sends update instead of duplicating.
+- Imports land in the **Sort** inbox on the home screen, untriaged, until you drag each
+  one to a category. Re-syncs refresh the source's fields (title, notes, due date,
+  completion) but never touch where you put it on the map, and never un-complete a task.
+- Keys are stored hashed. Token checks happen inside Postgres (`ingest_inbound`), so the
+  route needs no service-role secret.
+
+## Database migrations
+
+`supabase/schema.sql` is the base schema; apply files in `supabase/migrations/` in order
+after it. `002_inbound_and_due_dates.sql` adds due dates, the triage inbox, and inbound keys.
+
+## Auth emails
+
+Branded templates and the Resend SMTP settings live in `supabase/templates/`.
+
 ## Deliberately not built yet
 
 - **Inbox forwarding.** The home screen's `do@inbox` hint is still just a
@@ -68,8 +97,9 @@ link it sends you.
   or Resend both have this) plus a serverless function that parses the
   email with an LLM and inserts a task row. Good phase-two work — no
   sense blocking the rest of the app on it.
-- **Integrations.** Calendar, Reminders, and Slack toggles are stored but
-  don't connect to anything real yet.
+- **Provider connectors** (Todoist, Google Tasks, Microsoft To Do, Trello, Notion).
+  They'll all write through `upsert_inbound_tasks`, the same path the webhook uses.
+- **Rate limiting** on `/api/inbound`.
 - **Data import.** Export (a JSON download) works; restoring from a
   pasted backup was left out for now since it would need to safely
   reconcile against a real relational schema rather than just overwrite

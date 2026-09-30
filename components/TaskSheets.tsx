@@ -4,7 +4,7 @@ import { useState } from "react";
 import SheetShell from "./SheetShell";
 import { Icon } from "@/lib/icons";
 import { relTime } from "@/lib/constants";
-import { zoneOf, ZONE_COLOR, type Category, type Task } from "@/lib/types";
+import { dueLabel, dueToInput, effectiveUrgency, inputToDue, zoneOf, ZONE_COLOR, type Category, type Task } from "@/lib/types";
 
 const EFFORTS: { label: string; value: number }[] = [
   { label: "quick", value: 0.28 },
@@ -23,11 +23,12 @@ export function AddTaskSheet({
   categories: Category[];
   defaultCategoryId: string | null;
   onClose: () => void;
-  onSave: (title: string, categoryId: string, effort: number) => void;
+  onSave: (title: string, categoryId: string, effort: number, dueAt: string | null) => void;
 }) {
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState(defaultCategoryId ?? categories[0]?.id ?? "");
   const [effort, setEffort] = useState(0.5);
+  const [due, setDue] = useState("");
 
   // Reset the form each time the sheet opens. Adjusting state during
   // render (rather than in a useEffect) is the pattern React recommends
@@ -39,13 +40,14 @@ export function AddTaskSheet({
       setTitle("");
       setCategoryId(defaultCategoryId ?? categories[0]?.id ?? "");
       setEffort(0.5);
+      setDue("");
     }
   }
 
   function save() {
     const trimmed = title.trim();
     if (!trimmed || !categoryId) return;
-    onSave(trimmed, categoryId, effort);
+    onSave(trimmed, categoryId, effort, inputToDue(due));
   }
 
   return (
@@ -92,6 +94,17 @@ export function AddTaskSheet({
         ))}
       </div>
 
+      <div className="text-[11px] mt-3.5 mb-1.5" style={{ color: "var(--text-muted)" }}>
+        due date <span style={{ color: "var(--text-faint)" }}>(optional — it drifts toward urgent as the day nears)</span>
+      </div>
+      <input
+        type="date"
+        className="field-input"
+        style={{ colorScheme: "dark" }}
+        value={due}
+        onChange={(e) => setDue(e.target.value)}
+      />
+
       <div className="flex gap-2.5 mt-4.5">
         <button className="btn" onClick={onClose}>cancel</button>
         <button className="btn primary" onClick={save}>add to the map</button>
@@ -107,6 +120,7 @@ export function TaskDetailSheet({
   onClose,
   onDelete,
   onMarkDone,
+  onSetDue,
 }: {
   open: boolean;
   task: Task | null;
@@ -114,6 +128,7 @@ export function TaskDetailSheet({
   onClose: () => void;
   onDelete: (id: string) => void;
   onMarkDone: (id: string) => void;
+  onSetDue: (id: string, dueAt: string | null) => void;
 }) {
   if (!task) {
     return (
@@ -122,15 +137,34 @@ export function TaskDetailSheet({
       </SheetShell>
     );
   }
-  const zone = zoneOf(task);
+  const zone = zoneOf({ urgency: effectiveUrgency(task), importance: task.importance });
+  const due = dueLabel(task.due_at);
 
   return (
     <SheetShell open={open} onClose={onClose}>
       <div className="flex items-center gap-1.5 mb-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
         <span className="w-2 h-2 rounded-full" style={{ background: ZONE_COLOR[zone] }} />
-        <span>{zone} · {categoryLabel}</span>
+        <span>{zone} · {categoryLabel}{due ? ` · ${due}` : ""}</span>
       </div>
       <h3 className="font-display text-lg font-semibold mb-3.5">{task.title}</h3>
+      {task.notes && (
+        <p className="text-[12.5px] -mt-2 mb-3.5" style={{ color: "var(--text-muted)" }}>{task.notes}</p>
+      )}
+      <div className="text-[11px] mb-1.5" style={{ color: "var(--text-muted)" }}>due date</div>
+      <div className="flex gap-2 mb-4">
+        <input
+          type="date"
+          className="field-input"
+          style={{ colorScheme: "dark" }}
+          value={dueToInput(task.due_at)}
+          onChange={(e) => onSetDue(task.id, inputToDue(e.target.value))}
+        />
+        {task.due_at && (
+          <button className="btn" style={{ flex: "none", padding: "0 14px" }} onClick={() => onSetDue(task.id, null)}>
+            clear
+          </button>
+        )}
+      </div>
       <div className="flex gap-2.5">
         <button className="btn danger" onClick={() => onDelete(task.id)}>remove</button>
         <button className="btn primary" onClick={() => onMarkDone(task.id)}>mark done</button>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { zoneOf, ZONE_COLOR, type Task } from "@/lib/types";
+import { dueLabel, effectiveUrgency, zoneOf, ZONE_COLOR, type Task } from "@/lib/types";
 
 function truncate(s: string, n: number) {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
@@ -30,7 +30,7 @@ export default function Board({
     (e.target as Element).setPointerCapture(e.pointerId);
     movedRef.current = false;
     setDragId(task.id);
-    setDragPos({ urgency: task.urgency, importance: task.importance });
+    setDragPos({ urgency: effectiveUrgency(task), importance: task.importance });
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     offsetRef.current = {
       x: e.clientX - (rect.left + rect.width / 2),
@@ -92,7 +92,11 @@ export default function Board({
         )}
 
         {tasks.map((task) => {
-          const live = dragId === task.id && dragPos ? dragPos : task;
+          const placed = { urgency: effectiveUrgency(task), importance: task.importance };
+          const live = dragId === task.id && dragPos ? dragPos : placed;
+          // ring = a due date is currently pulling this task right of where you put it
+          const dueDriven = dragId !== task.id && placed.urgency > task.urgency + 0.001;
+          const due = dueLabel(task.due_at);
           const size = 30 + task.effort * 34;
           const zone = zoneOf(live);
           const completing = completingIds?.has(task.id) ?? false;
@@ -103,7 +107,7 @@ export default function Board({
               onPointerMove={moveDrag}
               onPointerUp={() => endDrag(task)}
               onPointerCancel={() => endDrag(task)}
-              title={task.title}
+              title={due ? `${task.title} (${due})` : task.title}
               className="absolute flex items-center justify-center text-center select-none rounded-full"
               style={{
                 animation: completing ? "pop 0.45s ease forwards" : undefined,
@@ -121,9 +125,10 @@ export default function Board({
                 cursor: dragId === task.id ? "grabbing" : "grab",
                 touchAction: "none",
                 boxShadow:
-                  dragId === task.id
+                  (dueDriven ? "0 0 0 2px var(--bg-panel), 0 0 0 3.5px rgba(243,241,235,.8), " : "") +
+                  (dragId === task.id
                     ? "0 10px 24px -6px rgba(0,0,0,.6)"
-                    : "0 6px 14px -6px rgba(0,0,0,.5)",
+                    : "0 6px 14px -6px rgba(0,0,0,.5)"),
                 zIndex: dragId === task.id ? 6 : 1,
               }}
             >

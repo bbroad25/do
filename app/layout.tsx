@@ -16,12 +16,19 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "DO",
   description: "What do you want to do?",
+  applicationName: "DO",
+  appleWebApp: { capable: true, title: "DO", statusBarStyle: "black-translucent" },
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#14161c",
 };
 
 export default function RootLayout({

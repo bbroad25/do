@@ -11,9 +11,11 @@ import SettingsScreen from "./SettingsScreen";
 import CategoryEditor from "./CategoryEditor";
 import IntegrationsScreen from "./IntegrationsScreen";
 import DataScreen from "./DataScreen";
+import TriageScreen from "./TriageScreen";
+import InstallPrompt from "./InstallPrompt";
 import { Icon } from "@/lib/icons";
 import { todayISODate } from "@/lib/constants";
-import type { Category, IconKey, IntegrationRow, Profile, Task } from "@/lib/types";
+import type { Category, IconKey, InboundToken, IntegrationRow, Profile, Task } from "@/lib/types";
 
 export type Screen =
   | "home"
@@ -23,7 +25,8 @@ export type Screen =
   | "settings"
   | "categories"
   | "integrations"
-  | "data";
+  | "data"
+  | "triage";
 
 const DEFAULT_CATEGORIES: { label: string; icon: IconKey }[] = [
   { label: "work", icon: "work" },
@@ -54,6 +57,8 @@ export default function DoApp({
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [integrations, setIntegrations] = useState<IntegrationRow[]>(initialIntegrations);
+  const [tokens, setTokens] = useState<InboundToken[]>([]);
+  const [newToken, setNewToken] = useState<string | null>(null);
 
   const [currentCategoryId, setCurrentCategoryId] = useState<string | null>(null);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
@@ -82,6 +87,10 @@ export default function DoApp({
     () => tasks.filter((t) => t.category_id === currentCategoryId && !t.done),
     [tasks, currentCategoryId]
   );
+  const inboxTasks = useMemo(
+    () => tasks.filter((t) => t.triage_state === "inbox" && !t.done),
+    [tasks]
+  );
   const archivedTasks = useMemo(
     () => tasks.filter((t) => t.category_id === currentCategoryId && t.done),
     [tasks, currentCategoryId]
@@ -89,7 +98,7 @@ export default function DoApp({
 
   /* ---------------- task mutations ---------------- */
 
-  async function handleAddTask(title: string, categoryId: string, effort: number) {
+  async function handleAddTask(title: string, categoryId: string, effort: number, dueAt: string | null) {
     setAddTaskOpen(false);
     const optimisticId = `tmp-${Date.now()}`;
     const optimistic: Task = {
@@ -103,6 +112,9 @@ export default function DoApp({
       done: false,
       done_at: null,
       created_at: new Date().toISOString(),
+      due_at: dueAt,
+      triage_state: "triaged",
+      source: "manual",
     };
     setTasks((prev) => [...prev, optimistic]);
     if (categoryId !== currentCategoryId) {
@@ -110,7 +122,7 @@ export default function DoApp({
     }
     const { data, error } = await supabase
       .from("tasks")
-      .insert({ user_id: userId, category_id: categoryId, title, urgency: 0.5, importance: 0.5, effort })
+      .insert({ user_id: userId, category_id: categoryId, title, urgency: 0.5, importance: 0.5, effort, due_at: dueAt })
       .select()
       .single();
     if (error || !data) {
@@ -119,6 +131,74 @@ export default function DoApp({
       return;
     }
     setTasks((prev) => prev.map((t) => (t.id === optimisticId ? (data as Task) : t)));
+  }
+
+  async function setTaskDue(taskId: string, dueAt: string | null) {
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, due_at: dueAt } : t)));
+    setDetailTask((prev) => (prev && prev.id === taskId ? { ...prev, due_at: dueAt } : prev));
+    const { error } = await supabase.from("tasks").update({ due_at: dueAt }).eq("id", taskId);
+    if (error) showToast("could not save that date");
+  }
+
+  /* ---------------- triage inbox (imported tasks) ---------------- */
+
+  async function triageTask(taskId: string, categoryId: string) {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, category_id: categoryId, triage_state: "triaged" } : t))
+    );
+    showToast(`sorted into ${catById(categoryId)?.label ?? "that category"}`);
+    const { error } = await supabase
+      .from("tasks")
+      .update({ category_id: categoryId, triage_state: "triaged" })
+      .eq("id", taskId);
+    if (error) showToast("could not sort that");
+  }
+
+  async function markInboxDone(taskId: string) {
+    const doneAt = new Date().toISOString();
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, done: true, done_at: doneAt } : t)));
+    const { error } = await supabase.from("tasks").update({ done: true, done_at: doneAt }).eq("id", taskId);
+    if (error) showToast("could not save that");
+  }
+
+  /* ---------------- inbound keys ---------------- */
+
+  async function loadTokens() {
+    const { data, error } = await supabase
+      .from("inbound_tokens")
+      .select("id, label, created_at, last_used_at")
+      .is("revoked_at", null)
+      .order("created_at");
+    if (!error) setTokens((data ?? []) as InboundToken[]);
+  }
+
+  async function createToken(label: string) {
+    const { data, error } = await supabase.rpc("create_inbound_token", { p_label: label });
+    if (error || !data) {
+      showToast(error?.code === "54000" ? "limit is 10 active keys" : "could not create a key");
+      return;
+    }
+    setNewToken(data as string);
+    loadTokens();
+  }
+
+  async function revokeToken(id: string) {
+    setTokens((prev) => prev.filter((t) => t.id !== id));
+    const { error } = await supabase.rpc("revoke_inbound_token", { p_id: id });
+    if (error) {
+      showToast("could not revoke that");
+      loadTokens();
+    } else {
+      showToast("key revoked");
+    }
+  }
+
+  function goTo(s: Screen) {
+    if (s === "integrations") {
+      setNewToken(null);
+      loadTokens();
+    }
+    setScreen(s);
   }
 
   async function commitPosition(taskId: string, urgency: number, importance: number) {
@@ -398,9 +478,21 @@ export default function DoApp({
                 What do you<br />want to do?
               </h1>
               <p className="text-[13.5px] m-0" style={{ color: "var(--text-muted)" }}>Drag toward a part of your life, or tap it.</p>
+              {inboxTasks.length > 0 && (
+                <button
+                  onClick={() => setScreen("triage")}
+                  className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12.5px] cursor-pointer"
+                  style={{ background: "var(--bg-panel)", border: "1px solid var(--hairline)", color: "var(--text-primary)" }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--q-next)" }} />
+                  {inboxTasks.length} new {inboxTasks.length === 1 ? "task" : "tasks"} to sort
+                </button>
+              )}
             </div>
 
             <Dial categories={categories} onSelect={openBoard} />
+
+            <InstallPrompt />
 
             <div className="px-5 flex-shrink-0" style={{ paddingBottom: "calc(18px + env(safe-area-inset-bottom, 0px))" }}>
               <button
@@ -450,7 +542,18 @@ export default function DoApp({
           </div>
         )}
 
-        {screen === "menu" && <MenuRoot onBack={() => setScreen("home")} onGoTo={setScreen} />}
+        {screen === "menu" && <MenuRoot onBack={() => setScreen("home")} onGoTo={goTo} />}
+
+        {screen === "triage" && (
+          <TriageScreen
+            tasks={inboxTasks}
+            categories={categories}
+            onBack={() => setScreen("home")}
+            onTriage={triageTask}
+            onDone={markInboxDone}
+            onDelete={deleteTask}
+          />
+        )}
 
         {screen === "profile" && (
           <ProfileScreen onBack={() => setScreen("menu")} profile={profile} tasks={tasks} onNameChange={handleNameChange} />
@@ -478,7 +581,16 @@ export default function DoApp({
         )}
 
         {screen === "integrations" && (
-          <IntegrationsScreen onBack={() => setScreen("menu")} integrations={integrations} onToggle={handleToggleIntegration} />
+          <IntegrationsScreen
+            onBack={() => setScreen("menu")}
+            integrations={integrations}
+            onToggle={handleToggleIntegration}
+            tokens={tokens}
+            newToken={newToken}
+            onCreateToken={createToken}
+            onRevokeToken={revokeToken}
+            onDismissNewToken={() => setNewToken(null)}
+          />
         )}
 
         {screen === "data" && (
@@ -506,6 +618,7 @@ export default function DoApp({
           onClose={() => setDetailTask(null)}
           onDelete={deleteTask}
           onMarkDone={markTaskDone}
+          onSetDue={setTaskDue}
         />
         <ArchiveSheet
           open={archiveOpen}

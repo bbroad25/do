@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<title>DO</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f2ee;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your sign-in link for DO.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f2ee;">
+  <tr><td align="center" style="padding:40px 16px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;background:#ffffff;border-radius:20px;">
+      <tr><td style="padding:36px 36px 8px 36px;">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td width="44" height="44" align="center" valign="middle" style="width:44px;height:44px;border-radius:22px;background:#ff6b5e;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:bold;font-size:17px;color:#15161b;">do</td>
+          <td style="padding-left:12px;font-family:Georgia,'Times New Roman',serif;font-weight:bold;font-size:20px;color:#15161b;letter-spacing:0.5px;">DO</td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="padding:24px 36px 0 36px;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:28px;line-height:1.2;color:#15161b;">Back to it.</td></tr>
+      <tr><td style="padding:12px 36px 0 36px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#4a4d57;">Here&#8217;s your sign-in link. It works once and expires soon, so use it from the device you want to sign in on.</td></tr>
+      <tr><td style="padding:28px 36px 0 36px;">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td align="center" style="border-radius:12px;background:#ff6b5e;">
+            <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 26px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;color:#15161b;text-decoration:none;border-radius:12px;">Sign in to DO</a>
+          </td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="padding:28px 36px 0 36px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;line-height:1.55;color:#8a8d97;">
+        Button not working? Paste this into your browser:<br>
+        <a href="{{ .ConfirmationURL }}" style="color:#e2554a;word-break:break-all;">{{ .ConfirmationURL }}</a>
+      </td></tr>
+      <tr><td style="padding:20px 36px 34px 36px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;line-height:1.55;color:#8a8d97;border-bottom:0;">Didn&#8217;t ask for this? Ignore it. Your account stays locked without the tap.</td></tr>
+    </table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;">
+      <tr><td align="center" style="padding:18px 0 0 0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:13px;color:#a3a09a;">What do you want to do?</td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>

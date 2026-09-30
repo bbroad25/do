@@ -13,6 +13,8 @@ export const config = {
      * - favicon.ico
      * - any file with an extension (images, etc.)
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Also skipped: the inbound webhook (it authenticates with its own key, not a
+    // login session), and PWA assets browsers fetch without cookies.
+    "/((?!_next/static|_next/image|favicon.ico|api/inbound|manifest.webmanifest|sw.js|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

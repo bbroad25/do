@@ -294,3 +294,12 @@ body {
     transform: translate(-50%, 0);
   }
 }
+
+@media (min-width: 1024px) {
+  .do-install {
+    left: 50% !important;
+    right: auto !important;
+    width: 520px;
+    transform: translateX(-50%);
+  }
+}
