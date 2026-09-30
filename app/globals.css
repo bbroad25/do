@@ -1,0 +1,223 @@
+@import "tailwindcss";
+
+:root {
+  --bg-deep: #14161c;
+  --bg-panel: #1d2029;
+  --bg-panel-2: #262a36;
+  --hairline: #333747;
+  --text-primary: #f3f1eb;
+  --text-muted: #9096a8;
+  --text-faint: #5b6070;
+  --accent: #ff6b5e;
+  --accent-ink: #15161b;
+  --q-now: #ff6b5e;
+  --q-next: #f5c15b;
+  --q-quick: #45c4b0;
+  --q-later: #7b81a0;
+}
+
+@theme inline {
+  --font-display: var(--font-fraunces);
+  --font-ui: var(--font-space-grotesk);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(120% 100% at 50% 0%, #1a1d26 0%, #101218 60%, #0c0d12 100%);
+  color: var(--text-primary);
+  font-family: var(--font-ui), -apple-system, sans-serif;
+  min-height: 100%;
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+/* ---- shared small components used across screens ---- */
+
+.btn {
+  flex: 1;
+  border-radius: 12px;
+  padding: 12px;
+  font-family: var(--font-ui), sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.btn.danger {
+  color: #ff8f86;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.field-input {
+  width: 100%;
+  background: var(--bg-deep);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 12px 13px;
+  color: var(--text-primary);
+  font-family: var(--font-ui), sans-serif;
+  font-size: 14px;
+}
+.field-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-deep);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.chip.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.nav-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: var(--bg-panel);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  padding: 13px 14px;
+  color: var(--text-primary);
+  font-family: var(--font-ui), sans-serif;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-row .ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--bg-panel-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+.toggle .track {
+  position: absolute;
+  inset: 0;
+  background: var(--hairline);
+  border-radius: 999px;
+  transition: background 0.18s;
+  pointer-events: none;
+}
+.toggle .thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #e8e6df;
+  transition: transform 0.18s;
+}
+.toggle input:checked ~ .track {
+  background: var(--accent);
+}
+.toggle input:checked ~ .track .thumb {
+  transform: translateX(18px);
+}
+
+.icon-btn-sm {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid var(--hairline);
+  background: var(--bg-deep);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.icon-btn-sm:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pop {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.25);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0;
+  }
+}
+@keyframes fly {
+  to {
+    transform: translate(var(--dx), var(--dy)) scale(0);
+    opacity: 0;
+  }
+}
