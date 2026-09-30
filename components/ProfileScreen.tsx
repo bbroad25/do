@@ -21,7 +21,7 @@ export default function ProfileScreen({
   return (
     <div className="absolute inset-0 flex flex-col">
       <SubHeader title="Profile" onBack={onBack} />
-      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-2">
+      <div className="do-scroll flex-1 overflow-y-auto px-5 pb-6 pt-2">
         <div
           className="mx-auto flex items-center justify-center rounded-full font-display italic font-semibold"
           style={{

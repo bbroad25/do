@@ -363,20 +363,10 @@ export default function DoApp({
   const currentCategory = catById(currentCategoryId);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-3.5" style={{ paddingTop: "calc(18px + env(safe-area-inset-top, 0px))", paddingBottom: "calc(18px + env(safe-area-inset-bottom, 0px))" }}>
-      <div
-        className="relative w-full flex flex-col overflow-hidden rounded-[28px]"
-        style={{
-          maxWidth: 430,
-          height: "min(860px, 100vh - 36px)",
-          minHeight: 560,
-          background: "var(--bg-deep)",
-          border: "1px solid #2a2d38",
-          boxShadow: "0 40px 90px -30px rgba(0,0,0,.65)",
-        }}
-      >
+    <div className="do-outer min-h-screen flex items-center justify-center">
+      <div className="do-shell relative w-full flex flex-col overflow-hidden">
         {screen === "home" && (
-          <div className="absolute inset-0 flex flex-col">
+          <div className="do-home absolute inset-0 flex flex-col">
             <div className="flex items-center justify-between px-5 pt-5 pb-1.5 flex-shrink-0">
               <div className="font-display font-semibold text-[22px]">DO</div>
               <div className="flex items-center gap-2">
@@ -428,7 +418,7 @@ export default function DoApp({
         )}
 
         {screen === "board" && currentCategory && (
-          <div className="absolute inset-0 flex flex-col">
+          <div className="do-board absolute inset-0 flex flex-col">
             <div className="flex items-center justify-between px-[18px] pt-[18px] pb-1.5 flex-shrink-0">
               <button onClick={() => setScreen("home")} className="flex items-center gap-1.5 border-none bg-transparent cursor-pointer text-[13px]" style={{ color: "var(--text-muted)" }}>
                 <svg viewBox="0 0 24 24" width={15} height={15} stroke="currentColor" fill="none" strokeWidth={1.8} strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>

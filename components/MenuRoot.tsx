@@ -15,7 +15,7 @@ export default function MenuRoot({ onBack, onGoTo }: { onBack: () => void; onGoT
   return (
     <div className="absolute inset-0 flex flex-col">
       <SubHeader title="you" onBack={onBack} backLabel="home" />
-      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-2">
+      <div className="do-scroll flex-1 overflow-y-auto px-5 pb-6 pt-2">
         <button className="nav-row mb-2.5" onClick={() => onGoTo("profile")}>
           <span className="ic">
             <svg viewBox="0 0 24 24" width={16} height={16} stroke="currentColor" fill="none" strokeWidth={1.6} strokeLinecap="round">

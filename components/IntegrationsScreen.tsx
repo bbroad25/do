@@ -46,7 +46,7 @@ export default function IntegrationsScreen({
   return (
     <div className="absolute inset-0 flex flex-col">
       <SubHeader title="Integrations" onBack={onBack} />
-      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-2">
+      <div className="do-scroll flex-1 overflow-y-auto px-5 pb-6 pt-2">
         <p className="text-[12px] mb-2" style={{ color: "var(--text-muted)" }}>
           Demo only for now — nothing here actually connects yet.
         </p>

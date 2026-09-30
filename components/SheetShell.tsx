@@ -22,7 +22,7 @@ export default function SheetShell({
         }}
       />
       <div
-        className="absolute left-0 right-0 bottom-0 overflow-y-auto"
+        className={`do-sheet absolute left-0 right-0 bottom-0 overflow-y-auto${open ? " open" : ""}`}
         style={{
           maxHeight: "82%",
           background: "var(--bg-panel-2)",
@@ -30,7 +30,6 @@ export default function SheetShell({
           borderBottom: "none",
           borderRadius: "20px 20px 0 0",
           padding: "16px 20px calc(20px + env(safe-area-inset-bottom, 0px))",
-          transform: open ? "translateY(0)" : "translateY(100%)",
           transition: "transform .28s cubic-bezier(.2,.8,.2,1)",
           zIndex: 11,
         }}

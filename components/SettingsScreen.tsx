@@ -20,7 +20,7 @@ export default function SettingsScreen({
   return (
     <div className="absolute inset-0 flex flex-col">
       <SubHeader title="Settings" onBack={onBack} />
-      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-2">
+      <div className="do-scroll flex-1 overflow-y-auto px-5 pb-6 pt-2">
         <div className="text-[11px] mb-2" style={{ color: "var(--text-muted)", letterSpacing: "0.04em" }}>the dial</div>
         <button className="nav-row mb-2.5" onClick={onGoToCategories}>
           <span className="ic">

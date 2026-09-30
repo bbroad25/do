@@ -12,7 +12,7 @@ export default function SubHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between px-[18px] pt-[18px] pb-1.5 flex-shrink-0">
+    <div className="do-subheader flex items-center justify-between px-[18px] pt-[18px] pb-1.5 flex-shrink-0">
       <button
         onClick={onBack}
         className="flex items-center gap-1.5 border-none bg-transparent cursor-pointer text-[13px]"

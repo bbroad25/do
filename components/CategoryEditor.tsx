@@ -40,7 +40,7 @@ export default function CategoryEditor({
   return (
     <div className="absolute inset-0 flex flex-col">
       <SubHeader title="Categories" onBack={onBack} />
-      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-2">
+      <div className="do-scroll flex-1 overflow-y-auto px-5 pb-6 pt-2">
         {categories.map((cat, idx) => (
           <div
             key={cat.id}

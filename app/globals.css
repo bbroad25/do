@@ -221,3 +221,76 @@ body {
     opacity: 0;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   App shell + responsive layout.
+   Below 1024px these reproduce the original mobile styles exactly.
+   At 1024px+ the app goes full-window.
+   --------------------------------------------------------------------------- */
+.do-outer {
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 0.875rem
+    calc(18px + env(safe-area-inset-bottom, 0px));
+}
+.do-shell {
+  max-width: 430px;
+  height: min(860px, 100vh - 36px);
+  min-height: 560px;
+  background: var(--bg-deep);
+  border: 1px solid #2a2d38;
+  border-radius: 28px;
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.65);
+}
+.do-dial {
+  width: min(300px, 78%);
+  --dial-r: 118px;
+}
+.do-sheet {
+  transform: translateY(100%);
+}
+.do-sheet.open {
+  transform: translateY(0);
+}
+
+@media (min-width: 1024px) {
+  .do-outer {
+    padding: 0;
+  }
+  .do-shell {
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  /* home + menus: centered reading column on the wide canvas */
+  .do-home,
+  .do-subheader,
+  .do-scroll {
+    padding-left: max(20px, calc((100% - 720px) / 2)) !important;
+    padding-right: max(20px, calc((100% - 720px) / 2)) !important;
+  }
+  .do-home h1 {
+    font-size: 40px !important;
+  }
+  /* bigger dial: real size change so pointer math stays 1:1 */
+  .do-dial {
+    width: 440px;
+    --dial-r: 172px;
+  }
+  /* board: full width, generous gutters */
+  .do-board {
+    padding: 8px 32px 12px;
+  }
+  /* sheets become centered panels instead of full-width drawers */
+  .do-sheet {
+    left: 50% !important;
+    right: auto !important;
+    width: min(560px, 100%);
+    transform: translate(-50%, 100%);
+  }
+  .do-sheet.open {
+    transform: translate(-50%, 0);
+  }
+}

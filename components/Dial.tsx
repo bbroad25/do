@@ -72,8 +72,8 @@ export default function Dial({
     <div className="flex-1 flex items-center justify-center min-h-0">
       <div
         ref={wrapRef}
-        className="relative"
-        style={{ width: "min(300px, 78%)", aspectRatio: "1 / 1" }}
+        className="do-dial relative"
+        style={{ aspectRatio: "1 / 1" }}
       >
         <div
           className="absolute rounded-full"
@@ -95,7 +95,7 @@ export default function Dial({
                 width: 76,
                 height: 76,
                 color: near ? "var(--text-primary)" : "var(--text-muted)",
-                transform: `translate(-50%,-50%) rotate(${angle}deg) translateY(-118px) rotate(${-angle}deg) scale(${
+                transform: `translate(-50%,-50%) rotate(${angle}deg) translateY(calc(-1 * var(--dial-r))) rotate(${-angle}deg) scale(${
                   near ? 1.12 : 1
                 })`,
               }}
