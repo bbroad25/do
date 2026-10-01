@@ -16,12 +16,13 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  const [{ data: profile }, { data: categories }, { data: tasks }, { data: integrations }] =
+  const [{ data: profile }, { data: categories }, { data: tasks }, { data: integrations }, { data: adminRow }] =
     await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
       supabase.from("categories").select("*").eq("user_id", user.id).order("sort_order"),
       supabase.from("tasks").select("*").eq("user_id", user.id),
       supabase.from("integrations").select("*").eq("user_id", user.id),
+      supabase.from("admins").select("user_id").eq("user_id", user.id).maybeSingle(),
     ]);
 
   return (
@@ -31,6 +32,7 @@ export default async function HomePage() {
       initialCategories={(categories ?? []) as Category[]}
       initialTasks={(tasks ?? []) as Task[]}
       initialIntegrations={(integrations ?? []) as IntegrationRow[]}
+      isAdmin={!!adminRow}
     />
   );
 }

@@ -111,6 +111,14 @@ export interface IntegrationRow {
 
 export type Zone = "now" | "next" | "quick" | "later";
 
+/** What people see. "quick" was confusing next to effort sizes (quick/medium/deep). */
+export const ZONE_LABEL: Record<Zone, string> = {
+  now: "now",
+  next: "next",
+  quick: "squeeze in",
+  later: "later",
+};
+
 export function zoneOf(task: Pick<Task, "urgency" | "importance">): Zone {
   const urgent = task.urgency >= 0.5;
   const important = task.importance >= 0.5;

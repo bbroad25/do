@@ -4,7 +4,7 @@ import { useState } from "react";
 import SheetShell from "./SheetShell";
 import { Icon } from "@/lib/icons";
 import { relTime } from "@/lib/constants";
-import { dueLabel, dueToInput, effectiveUrgency, inputToDue, zoneOf, ZONE_COLOR, type Category, type Task } from "@/lib/types";
+import { dueLabel, dueToInput, effectiveUrgency, inputToDue, zoneOf, ZONE_COLOR, ZONE_LABEL, type Category, type Task } from "@/lib/types";
 
 const EFFORTS: { label: string; value: number }[] = [
   { label: "quick", value: 0.28 },
@@ -144,7 +144,7 @@ export function TaskDetailSheet({
     <SheetShell open={open} onClose={onClose}>
       <div className="flex items-center gap-1.5 mb-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
         <span className="w-2 h-2 rounded-full" style={{ background: ZONE_COLOR[zone] }} />
-        <span>{zone} · {categoryLabel}{due ? ` · ${due}` : ""}</span>
+        <span>{ZONE_LABEL[zone]} · {categoryLabel}{due ? ` · ${due}` : ""}</span>
       </div>
       <h3 className="font-display text-lg font-semibold mb-3.5">{task.title}</h3>
       {task.notes && (
@@ -270,7 +270,7 @@ export function SuggestSheet({
           <h3 className="font-display text-[22px] font-semibold mb-1.5 leading-snug">{task.title}</h3>
           <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: "var(--text-muted)" }}>
             <span className="w-2 h-2 rounded-full" style={{ background: ZONE_COLOR[zone] }} />
-            <span>{zone} · {categoryLabel}{due ? ` · ${due}` : ""}</span>
+            <span>{ZONE_LABEL[zone]} · {categoryLabel}{due ? ` · ${due}` : ""}</span>
           </div>
           <div className="flex gap-2.5">
             <button className="btn" onClick={onAnother} disabled={!hasMore}>another</button>

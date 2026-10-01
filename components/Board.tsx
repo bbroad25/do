@@ -82,7 +82,7 @@ export default function Board({
 
         <div className="absolute top-0 right-0 p-2 pointer-events-none" style={{ fontSize: 10, letterSpacing: "0.08em", color: "var(--q-now)" }}>now</div>
         <div className="absolute top-0 left-0 p-2 pointer-events-none" style={{ fontSize: 10, letterSpacing: "0.08em", color: "var(--q-next)" }}>next</div>
-        <div className="absolute bottom-0 right-0 p-2 pointer-events-none" style={{ fontSize: 10, letterSpacing: "0.08em", color: "var(--q-quick)" }}>quick</div>
+        <div className="absolute bottom-0 right-0 p-2 pointer-events-none" style={{ fontSize: 10, letterSpacing: "0.08em", color: "var(--q-quick)" }}>squeeze in</div>
         <div className="absolute bottom-0 left-0 p-2 pointer-events-none" style={{ fontSize: 10, letterSpacing: "0.08em", color: "var(--text-faint)" }}>later</div>
 
         {tasks.length === 0 && (

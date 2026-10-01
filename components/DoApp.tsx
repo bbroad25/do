@@ -11,6 +11,8 @@ import SettingsScreen from "./SettingsScreen";
 import CategoryEditor from "./CategoryEditor";
 import IntegrationsScreen from "./IntegrationsScreen";
 import DataScreen from "./DataScreen";
+import ReportsScreen, { type Report } from "./ReportsScreen";
+import { effortBucket, track } from "@/lib/track";
 import TriageScreen from "./TriageScreen";
 import InstallPrompt from "./InstallPrompt";
 import { Icon } from "@/lib/icons";
@@ -27,7 +29,8 @@ export type Screen =
   | "categories"
   | "integrations"
   | "data"
-  | "triage";
+  | "triage"
+  | "reports";
 
 const DEFAULT_CATEGORIES: { label: string; icon: IconKey }[] = [
   { label: "work", icon: "work" },
@@ -44,12 +47,14 @@ export default function DoApp({
   initialCategories,
   initialTasks,
   initialIntegrations,
+  isAdmin = false,
 }: {
   userId: string;
   initialProfile: Profile;
   initialCategories: Category[];
   initialTasks: Task[];
   initialIntegrations: IntegrationRow[];
+  isAdmin?: boolean;
 }) {
   const supabase = useMemo(() => createClient(), []);
 
@@ -69,6 +74,22 @@ export default function DoApp({
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [suggestSkips, setSuggestSkips] = useState<string[]>([]);
   const [suggestAt, setSuggestAt] = useState(0); // clock captured when the sheet opens
+  const [report, setReport] = useState<Report | null>(null);
+  const [reportDays, setReportDays] = useState(30);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const sessionTracked = useRef(false);
+
+  useEffect(() => {
+    if (sessionTracked.current) return;
+    sessionTracked.current = true;
+    track("session_start", {
+      desktop: window.matchMedia("(min-width: 1024px)").matches,
+      installed:
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (navigator as Navigator & { standalone?: boolean }).standalone === true,
+    });
+  }, []);
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -146,6 +167,7 @@ export default function DoApp({
     if (categoryId !== currentCategoryId) {
       showToast(`added to ${catById(categoryId)?.label ?? "that category"}`);
     }
+    track("task_added", { effort: effortBucket(effort), has_due: !!dueAt, learned: learned.urgency !== 0.5 || learned.importance !== 0.5 });
     const { data, error } = await supabase
       .from("tasks")
       .insert({ user_id: userId, category_id: categoryId, title, urgency, importance, effort, due_at: dueAt })
@@ -173,6 +195,7 @@ export default function DoApp({
     const untouched = task && Number(task.urgency) === 0.5 && Number(task.importance) === 0.5;
     const placement = untouched ? learnedPlacement(tasks, categoryId) : {};
     const patch = { category_id: categoryId, triage_state: "triaged" as const, ...placement };
+    track("triage_sorted", { source: task?.source ?? "unknown" });
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)));
     showToast(`sorted into ${catById(categoryId)?.label ?? "that category"}`);
     const { error } = await supabase.from("tasks").update(patch).eq("id", taskId);
@@ -180,6 +203,7 @@ export default function DoApp({
   }
 
   async function markInboxDone(taskId: string) {
+    track("task_completed", { via: "triage" });
     const doneAt = new Date().toISOString();
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, done: true, done_at: doneAt } : t)));
     const { error } = await supabase.from("tasks").update({ done: true, done_at: doneAt }).eq("id", taskId);
@@ -218,7 +242,18 @@ export default function DoApp({
     }
   }
 
+  async function loadReport(days: number) {
+    setReportDays(days);
+    setReportLoading(true);
+    setReportError(null);
+    const { data, error } = await supabase.rpc("admin_report", { p_days: days });
+    setReportLoading(false);
+    if (error) setReportError(error.code === "42501" ? "Reports are admin-only." : "Could not load reports.");
+    else setReport(data as Report);
+  }
+
   function goTo(s: Screen) {
+    if (s === "reports") loadReport(reportDays);
     if (s === "integrations") {
       setNewToken(null);
       loadTokens();
@@ -232,7 +267,8 @@ export default function DoApp({
     if (error) showToast("could not save that move");
   }
 
-  function markTaskDone(id: string) {
+  function markTaskDone(id: string, via: "board" | "suggest" = "board") {
+    track("task_completed", { via });
     setDetailTask(null);
     setCompletingIds((prev) => new Set(prev).add(id));
     setTimeout(async () => {
@@ -460,7 +496,8 @@ export default function DoApp({
 
   /* ---------------- navigation ---------------- */
 
-  function openBoard(categoryId: string) {
+  function openBoard(categoryId: string, via?: "drag" | "tap" | "key") {
+    if (via) track("board_opened", { via });
     setCurrentCategoryId(categoryId);
     setScreen("board");
   }
@@ -511,7 +548,10 @@ export default function DoApp({
                     type="button"
                     className={`chip ${timeBudget === b.key ? "selected" : ""}`}
                     style={{ padding: "5px 11px", fontSize: 12 }}
-                    onClick={() => setTimeBudget(b.key)}
+                    onClick={() => {
+                      setTimeBudget(b.key);
+                      track("time_filter_set", { budget: b.key });
+                    }}
                   >
                     {b.label}
                   </button>
@@ -542,6 +582,7 @@ export default function DoApp({
                   setSuggestSkips([]);
                   setSuggestAt(Date.now());
                   setSuggestOpen(true);
+                  track("suggest_opened", { budget: timeBudget });
                 }}
                 className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] cursor-pointer bg-transparent"
                 style={{ border: "1px solid var(--hairline)", color: "var(--text-primary)" }}
@@ -614,7 +655,18 @@ export default function DoApp({
           </div>
         )}
 
-        {screen === "menu" && <MenuRoot onBack={() => setScreen("home")} onGoTo={goTo} />}
+        {screen === "menu" && <MenuRoot onBack={() => setScreen("home")} onGoTo={goTo} isAdmin={isAdmin} />}
+
+        {screen === "reports" && (
+          <ReportsScreen
+            onBack={() => setScreen("menu")}
+            report={report}
+            days={reportDays}
+            loading={reportLoading}
+            error={reportError}
+            onRange={loadReport}
+          />
+        )}
 
         {screen === "triage" && (
           <TriageScreen
@@ -701,10 +753,15 @@ export default function DoApp({
           onClose={() => setSuggestOpen(false)}
           onDone={(id) => {
             setSuggestOpen(false);
-            markTaskDone(id);
+            markTaskDone(id, "suggest");
           }}
-          onAnother={() => suggestions[0] && setSuggestSkips((prev) => [...prev, suggestions[0].id])}
+          onAnother={() => {
+            if (!suggestions[0]) return;
+            track("suggest_another");
+            setSuggestSkips((prev) => [...prev, suggestions[0].id]);
+          }}
           onOpenOnMap={(t) => {
+            track("suggest_see_on_map");
             setSuggestOpen(false);
             if (t.category_id) openBoard(t.category_id);
             setDetailTask(t);

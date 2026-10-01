@@ -11,7 +11,7 @@ function Chevron() {
   );
 }
 
-export default function MenuRoot({ onBack, onGoTo }: { onBack: () => void; onGoTo: (s: Screen) => void }) {
+export default function MenuRoot({ onBack, onGoTo, isAdmin = false }: { onBack: () => void; onGoTo: (s: Screen) => void; isAdmin?: boolean }) {
   return (
     <div className="absolute inset-0 flex flex-col">
       <SubHeader title="you" onBack={onBack} backLabel="home" />
@@ -58,6 +58,20 @@ export default function MenuRoot({ onBack, onGoTo }: { onBack: () => void; onGoT
           <Chevron />
         </button>
 
+        {isAdmin && (
+          <button className="nav-row mb-2.5" onClick={() => onGoTo("reports")}>
+            <span className="ic">
+              <svg viewBox="0 0 24 24" width={16} height={16} stroke="currentColor" fill="none" strokeWidth={1.6} strokeLinecap="round">
+                <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+              </svg>
+            </span>
+            <span className="flex-1 min-w-0">
+              <b className="block font-medium text-[13.5px]">Reports</b>
+              <span className="block text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>How people actually use DO · admin only</span>
+            </span>
+            <Chevron />
+          </button>
+        )}
         <button className="nav-row mb-2.5" onClick={() => onGoTo("data")}>
           <span className="ic">
             <svg viewBox="0 0 24 24" width={16} height={16} stroke="currentColor" fill="none" strokeWidth={1.6} strokeLinecap="round">

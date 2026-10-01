@@ -20,7 +20,7 @@ export default function Dial({
   counts,
 }: {
   categories: Category[];
-  onSelect: (categoryId: string) => void;
+  onSelect: (categoryId: string, via: "drag" | "tap" | "key") => void;
   /** when a time filter is active: how many open tasks in each category fit it */
   counts?: Record<string, number>;
 }) {
@@ -67,7 +67,7 @@ export default function Dial({
     setNearId(null);
     if (movedRef.current && res.dist > 55) {
       const near = nearestCategory(res.fromTop);
-      if (near) onSelect(near.id);
+      if (near) onSelect(near.id, "drag");
     }
   }
 
@@ -91,7 +91,7 @@ export default function Dial({
             <button
               key={cat.id}
               type="button"
-              onClick={() => onSelect(cat.id)}
+              onClick={() => onSelect(cat.id, "tap")}
               className="absolute flex flex-col items-center justify-center gap-1 border-none bg-transparent cursor-pointer transition-colors"
               style={{
                 top: "50%",
@@ -145,7 +145,7 @@ export default function Dial({
           onPointerCancel={endDrag}
           onKeyDown={(e) => {
             if ((e.key === "Enter" || e.key === " ") && categories[0]) {
-              onSelect(categories[0].id);
+              onSelect(categories[0].id, "key");
             }
           }}
           className="absolute flex items-center justify-center rounded-full font-display italic select-none"
