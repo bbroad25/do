@@ -10,12 +10,15 @@ function truncate(s: string, n: number) {
 export default function Board({
   tasks,
   completingIds,
+  isDimmed,
   onCommitPosition,
   onTapTask,
   onAddClick,
 }: {
   tasks: Task[];
   completingIds?: Set<string>;
+  /** tasks outside the active time filter stay visible but recede */
+  isDimmed?: (task: Task) => boolean;
   onCommitPosition: (taskId: string, urgency: number, importance: number) => void;
   onTapTask: (task: Task) => void;
   onAddClick: () => void;
@@ -111,6 +114,7 @@ export default function Board({
               className="absolute flex items-center justify-center text-center select-none rounded-full"
               style={{
                 animation: completing ? "pop 0.45s ease forwards" : undefined,
+                opacity: dragId !== task.id && isDimmed?.(task) ? 0.22 : 1,
                 left: `${live.urgency * 100}%`,
                 top: `${(1 - live.importance) * 100}%`,
                 width: size,

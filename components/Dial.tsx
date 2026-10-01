@@ -17,9 +17,12 @@ function angleFromCenter(clientX: number, clientY: number, rect: DOMRect) {
 export default function Dial({
   categories,
   onSelect,
+  counts,
 }: {
   categories: Category[];
   onSelect: (categoryId: string) => void;
+  /** when a time filter is active: how many open tasks in each category fit it */
+  counts?: Record<string, number>;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -83,6 +86,7 @@ export default function Dial({
         {categories.map((cat, i) => {
           const angle = n > 0 ? i * (360 / n) : 0;
           const near = nearId === cat.id;
+          const count = counts ? counts[cat.id] ?? 0 : null;
           return (
             <button
               key={cat.id}
@@ -95,12 +99,32 @@ export default function Dial({
                 width: 76,
                 height: 76,
                 color: near ? "var(--text-primary)" : "var(--text-muted)",
+                opacity: count === 0 ? 0.35 : 1,
                 transform: `translate(-50%,-50%) rotate(${angle}deg) translateY(calc(-1 * var(--dial-r))) rotate(${-angle}deg) scale(${
                   near ? 1.12 : 1
                 })`,
               }}
             >
-              <Icon icon={cat.icon} size={22} />
+              <span className="relative inline-flex">
+                <Icon icon={cat.icon} size={22} />
+                {count !== null && count > 0 && (
+                  <span
+                    className="absolute flex items-center justify-center rounded-full font-semibold"
+                    style={{
+                      top: -7,
+                      right: -11,
+                      minWidth: 16,
+                      height: 16,
+                      padding: "0 4px",
+                      fontSize: 10,
+                      background: "var(--accent)",
+                      color: "var(--accent-ink)",
+                    }}
+                  >
+                    {count}
+                  </span>
+                )}
+              </span>
               <span
                 className="text-[11.5px] max-w-[74px] overflow-hidden text-ellipsis whitespace-nowrap"
                 style={{ letterSpacing: "0.01em" }}

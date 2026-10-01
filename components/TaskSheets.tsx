@@ -234,3 +234,62 @@ export function ArchiveSheet({
     </SheetShell>
   );
 }
+
+export function SuggestSheet({
+  open,
+  task,
+  categoryLabel,
+  budgetLabel,
+  hasMore,
+  onClose,
+  onDone,
+  onAnother,
+  onOpenOnMap,
+  onWiden,
+}: {
+  open: boolean;
+  task: Task | null;
+  categoryLabel: string;
+  budgetLabel: string | null;
+  hasMore: boolean;
+  onClose: () => void;
+  onDone: (id: string) => void;
+  onAnother: () => void;
+  onOpenOnMap: (task: Task) => void;
+  onWiden: () => void;
+}) {
+  const zone = task ? zoneOf({ urgency: effectiveUrgency(task), importance: task.importance }) : null;
+  const due = task ? dueLabel(task.due_at) : null;
+  return (
+    <SheetShell open={open} onClose={onClose}>
+      <div className="text-[11px] mb-1.5" style={{ color: "var(--text-muted)", letterSpacing: "0.04em" }}>
+        {budgetLabel ? `try this · fits in ${budgetLabel}` : "try this"}
+      </div>
+      {task && zone ? (
+        <>
+          <h3 className="font-display text-[22px] font-semibold mb-1.5 leading-snug">{task.title}</h3>
+          <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: "var(--text-muted)" }}>
+            <span className="w-2 h-2 rounded-full" style={{ background: ZONE_COLOR[zone] }} />
+            <span>{zone} · {categoryLabel}{due ? ` · ${due}` : ""}</span>
+          </div>
+          <div className="flex gap-2.5">
+            <button className="btn" onClick={onAnother} disabled={!hasMore}>another</button>
+            <button className="btn" onClick={() => onOpenOnMap(task)}>see on map</button>
+            <button className="btn primary" onClick={() => onDone(task.id)}>done ✓</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <h3 className="font-display text-[20px] font-semibold mb-2">Nothing fits that window.</h3>
+          <p className="text-[13px] mt-0 mb-4" style={{ color: "var(--text-muted)" }}>
+            Everything open needs more time than that. Widen it, or add something quick.
+          </p>
+          <div className="flex gap-2.5">
+            <button className="btn" onClick={onClose}>close</button>
+            {budgetLabel && <button className="btn primary" onClick={onWiden}>any amount of time</button>}
+          </div>
+        </>
+      )}
+    </SheetShell>
+  );
+}

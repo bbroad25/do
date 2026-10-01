@@ -126,3 +126,50 @@ export const ZONE_COLOR: Record<Zone, string> = {
   quick: "var(--q-quick)",
   later: "var(--q-later)",
 };
+
+/* ---------------- "I have ___" time filter ---------------- */
+
+export type TimeBudget = "any" | "5" | "30";
+export const TIME_BUDGETS: { key: TimeBudget; label: string }[] = [
+  { key: "5", label: "5 min" },
+  { key: "30", label: "30 min" },
+  { key: "any", label: "any time" },
+];
+
+/** Effort sizes: quick 0.28, medium 0.5, deep 0.8. */
+export function fitsBudget(t: Pick<Task, "effort">, b: TimeBudget): boolean {
+  const effort = Number(t.effort);
+  if (b === "5") return effort <= 0.35;
+  if (b === "30") return effort <= 0.6;
+  return true;
+}
+
+/* ---------------- "pick one for me" ---------------- */
+
+/** How strongly DO recommends doing this next: map position (incl. due-date drift) plus importance. */
+export function suggestionScore(t: Task, now = Date.now()): number {
+  return effectiveUrgency(t, now) * 0.55 + Number(t.importance) * 0.45;
+}
+
+/* ---------------- smart default placement (no LLM) ---------------- */
+
+/**
+ * Where a new task should land: the median of where *you* put tasks in that
+ * category. Neutral (center) until there are 3 examples to learn from.
+ */
+export function learnedPlacement(tasks: Task[], categoryId: string): { urgency: number; importance: number } {
+  const placed = tasks.filter(
+    (t) => t.category_id === categoryId && t.triage_state !== "inbox" && !t.id.startsWith("tmp-")
+  );
+  if (placed.length < 3) return { urgency: 0.5, importance: 0.5 };
+  const median = (xs: number[]) => {
+    const s = [...xs].sort((a, b) => a - b);
+    const m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  };
+  const clamp = (v: number) => Math.min(0.9, Math.max(0.1, v));
+  return {
+    urgency: clamp(median(placed.map((t) => Number(t.urgency)))),
+    importance: clamp(median(placed.map((t) => Number(t.importance)))),
+  };
+}

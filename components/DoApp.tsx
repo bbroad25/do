@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Dial from "./Dial";
 import Board from "./Board";
-import { AddTaskSheet, ArchiveSheet, TaskDetailSheet } from "./TaskSheets";
+import { AddTaskSheet, ArchiveSheet, SuggestSheet, TaskDetailSheet } from "./TaskSheets";
 import MenuRoot from "./MenuRoot";
 import ProfileScreen from "./ProfileScreen";
 import SettingsScreen from "./SettingsScreen";
@@ -15,7 +15,8 @@ import TriageScreen from "./TriageScreen";
 import InstallPrompt from "./InstallPrompt";
 import { Icon } from "@/lib/icons";
 import { todayISODate } from "@/lib/constants";
-import type { Category, IconKey, InboundToken, IntegrationRow, Profile, Task } from "@/lib/types";
+import type { Category, IconKey, InboundToken, IntegrationRow, Profile, Task, TimeBudget } from "@/lib/types";
+import { TIME_BUDGETS, fitsBudget, learnedPlacement, suggestionScore } from "@/lib/types";
 
 export type Screen =
   | "home"
@@ -64,6 +65,10 @@ export default function DoApp({
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
+  const [timeBudget, setTimeBudget] = useState<TimeBudget>("any");
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestSkips, setSuggestSkips] = useState<string[]>([]);
+  const [suggestAt, setSuggestAt] = useState(0); // clock captured when the sheet opens
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,6 +92,23 @@ export default function DoApp({
     () => tasks.filter((t) => t.category_id === currentCategoryId && !t.done),
     [tasks, currentCategoryId]
   );
+  // open, sorted tasks that fit the "I have ___" window
+  const fittingTasks = useMemo(
+    () => tasks.filter((t) => !t.done && t.triage_state !== "inbox" && t.category_id && fitsBudget(t, timeBudget)),
+    [tasks, timeBudget]
+  );
+  const budgetCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const t of fittingTasks) if (t.category_id) counts[t.category_id] = (counts[t.category_id] ?? 0) + 1;
+    return counts;
+  }, [fittingTasks]);
+  const suggestions = useMemo(() => {
+    return fittingTasks
+      .filter((t) => !suggestSkips.includes(t.id))
+      .sort((a, b) => suggestionScore(b, suggestAt) - suggestionScore(a, suggestAt));
+  }, [fittingTasks, suggestSkips, suggestAt]);
+  const budgetLabel = timeBudget === "any" ? null : TIME_BUDGETS.find((b) => b.key === timeBudget)?.label ?? null;
+
   const inboxTasks = useMemo(
     () => tasks.filter((t) => t.triage_state === "inbox" && !t.done),
     [tasks]
@@ -100,14 +122,18 @@ export default function DoApp({
 
   async function handleAddTask(title: string, categoryId: string, effort: number, dueAt: string | null) {
     setAddTaskOpen(false);
+    const learned = learnedPlacement(tasks, categoryId);
+    const jitter = () => (Math.random() - 0.5) * 0.08;
+    const urgency = Math.min(0.95, Math.max(0.05, learned.urgency + jitter()));
+    const importance = Math.min(0.95, Math.max(0.05, learned.importance + jitter()));
     const optimisticId = `tmp-${Date.now()}`;
     const optimistic: Task = {
       id: optimisticId,
       user_id: userId,
       category_id: categoryId,
       title,
-      urgency: 0.5,
-      importance: 0.5,
+      urgency,
+      importance,
       effort,
       done: false,
       done_at: null,
@@ -122,7 +148,7 @@ export default function DoApp({
     }
     const { data, error } = await supabase
       .from("tasks")
-      .insert({ user_id: userId, category_id: categoryId, title, urgency: 0.5, importance: 0.5, effort, due_at: dueAt })
+      .insert({ user_id: userId, category_id: categoryId, title, urgency, importance, effort, due_at: dueAt })
       .select()
       .single();
     if (error || !data) {
@@ -143,14 +169,13 @@ export default function DoApp({
   /* ---------------- triage inbox (imported tasks) ---------------- */
 
   async function triageTask(taskId: string, categoryId: string) {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, category_id: categoryId, triage_state: "triaged" } : t))
-    );
+    const task = tasks.find((t) => t.id === taskId);
+    const untouched = task && Number(task.urgency) === 0.5 && Number(task.importance) === 0.5;
+    const placement = untouched ? learnedPlacement(tasks, categoryId) : {};
+    const patch = { category_id: categoryId, triage_state: "triaged" as const, ...placement };
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)));
     showToast(`sorted into ${catById(categoryId)?.label ?? "that category"}`);
-    const { error } = await supabase
-      .from("tasks")
-      .update({ category_id: categoryId, triage_state: "triaged" })
-      .eq("id", taskId);
+    const { error } = await supabase.from("tasks").update(patch).eq("id", taskId);
     if (error) showToast("could not sort that");
   }
 
@@ -478,6 +503,20 @@ export default function DoApp({
                 What do you<br />want to do?
               </h1>
               <p className="text-[13.5px] m-0" style={{ color: "var(--text-muted)" }}>Drag toward a part of your life, or tap it.</p>
+              <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+                <span className="text-[12px] mr-0.5" style={{ color: "var(--text-faint)" }}>I have</span>
+                {TIME_BUDGETS.map((b) => (
+                  <button
+                    key={b.key}
+                    type="button"
+                    className={`chip ${timeBudget === b.key ? "selected" : ""}`}
+                    style={{ padding: "5px 11px", fontSize: 12 }}
+                    onClick={() => setTimeBudget(b.key)}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
               {inboxTasks.length > 0 && (
                 <button
                   onClick={() => setScreen("triage")}
@@ -490,7 +529,29 @@ export default function DoApp({
               )}
             </div>
 
-            <Dial categories={categories} onSelect={openBoard} />
+            <Dial
+              categories={categories}
+              onSelect={openBoard}
+              counts={timeBudget === "any" ? undefined : budgetCounts}
+            />
+
+            <div className="flex justify-center flex-shrink-0 pb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSuggestSkips([]);
+                  setSuggestAt(Date.now());
+                  setSuggestOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] cursor-pointer bg-transparent"
+                style={{ border: "1px solid var(--hairline)", color: "var(--text-primary)" }}
+              >
+                <svg viewBox="0 0 24 24" width={13} height={13} stroke="var(--accent)" fill="none" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+                </svg>
+                pick one for me
+              </button>
+            </div>
 
             <InstallPrompt />
 
@@ -532,9 +593,20 @@ export default function DoApp({
               </button>
             </div>
 
+            {budgetLabel && (
+              <button
+                type="button"
+                onClick={() => setTimeBudget("any")}
+                className="mx-auto mb-1 text-[11.5px] bg-transparent border-none cursor-pointer flex-shrink-0"
+                style={{ color: "var(--text-muted)" }}
+              >
+                highlighting what fits in {budgetLabel} · <span style={{ color: "var(--accent)" }}>show all</span>
+              </button>
+            )}
             <Board
               tasks={boardTasks}
               completingIds={completingIds}
+              isDimmed={timeBudget === "any" ? undefined : (t) => !fitsBudget(t, timeBudget)}
               onCommitPosition={commitPosition}
               onTapTask={setDetailTask}
               onAddClick={() => setAddTaskOpen(true)}
@@ -619,6 +691,28 @@ export default function DoApp({
           onDelete={deleteTask}
           onMarkDone={markTaskDone}
           onSetDue={setTaskDue}
+        />
+        <SuggestSheet
+          open={suggestOpen}
+          task={suggestions[0] ?? null}
+          categoryLabel={suggestions[0] ? catById(suggestions[0].category_id)?.label ?? "" : ""}
+          budgetLabel={budgetLabel}
+          hasMore={suggestions.length > 1}
+          onClose={() => setSuggestOpen(false)}
+          onDone={(id) => {
+            setSuggestOpen(false);
+            markTaskDone(id);
+          }}
+          onAnother={() => suggestions[0] && setSuggestSkips((prev) => [...prev, suggestions[0].id])}
+          onOpenOnMap={(t) => {
+            setSuggestOpen(false);
+            if (t.category_id) openBoard(t.category_id);
+            setDetailTask(t);
+          }}
+          onWiden={() => {
+            setTimeBudget("any");
+            setSuggestSkips([]);
+          }}
         />
         <ArchiveSheet
           open={archiveOpen}
